@@ -1,9 +1,9 @@
 package com.example;
 
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.*;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -12,6 +12,8 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 public class ArchiveDownloader {
+
+    private static final Logger logger = LoggerFactory.getLogger(ArchiveDownloader.class);
 
     private static final String ZIP_URL = "https://www.awrportal.de/temp/HSCTWXX_I_00054_new-schema.zip";
     private static final String DOWNLOAD_DIR = "src/main/resources/downloads";
@@ -22,14 +24,15 @@ public class ArchiveDownloader {
         try {
             downloadZip(ZIP_URL, DOWNLOAD_DIR);
             unzipFile(DOWNLOAD_DIR + "/HSCTWXX_I_00054_new-schema.zip", EXTRACT_DIR);
-            createDirectoryIfNotExists(JSON_OUTPUT_DIR);  // Ensure the JSON output directory exists
+            createDirectoryIfNotExists(JSON_OUTPUT_DIR);
             processXmlFiles(EXTRACT_DIR, JSON_OUTPUT_DIR);
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error("An error occurred in main process", e);
         }
     }
 
     private static void downloadZip(String urlString, String downloadDir) throws IOException {
+        logger.info("Starting download from URL: {}", urlString);
         URL url = new URL(urlString);
         BufferedInputStream bis = new BufferedInputStream(url.openStream());
         File downloadDirectory = new File(downloadDir);
@@ -44,9 +47,11 @@ public class ArchiveDownloader {
         }
         fis.close();
         bis.close();
+        logger.info("Download completed successfully");
     }
 
     private static void unzipFile(String zipFilePath, String destDir) throws IOException {
+        logger.info("Unzipping file: {}", zipFilePath);
         File destDirectory = new File(destDir);
         if (!destDirectory.exists()) {
             destDirectory.mkdirs();
@@ -72,25 +77,29 @@ public class ArchiveDownloader {
             }
         }
         zipFile.close();
+        logger.info("Unzipping completed successfully");
     }
 
     private static void processXmlFiles(String extractDir, String outputDir) throws Exception {
+        logger.info("Processing XML files in directory: {}", extractDir);
         Files.walk(Paths.get(extractDir))
                 .filter(Files::isRegularFile)
                 .filter(path -> path.toString().endsWith(".xml"))
                 .forEach(path -> {
                     try {
                         XmlToJsonConverter.convert(path.toString(), outputDir);
+                        logger.info("Processed XML file: {}", path);
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        logger.error("Failed to process XML file: {}", path, e);
                     }
                 });
     }
 
-    private static void createDirectoryIfNotExists(String dirPath) {
+    protected static void createDirectoryIfNotExists(String dirPath) {
         File directory = new File(dirPath);
         if (!directory.exists()) {
             directory.mkdirs();
+            logger.info("Created directory: {}", dirPath);
         }
     }
 }

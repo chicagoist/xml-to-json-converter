@@ -8,4 +8,4 @@
 *.xlsx
 /data/h2db.mv.db
 *.db
-/src/test/
+*.zip

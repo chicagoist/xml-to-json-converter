@@ -1,7 +1,9 @@
 package com.example;
-
 import com.google.gson.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.w3c.dom.*;
+
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.File;
@@ -12,16 +14,17 @@ import java.util.*;
 
 public class XmlToJsonConverter {
 
+    private static final Logger logger = LoggerFactory.getLogger(XmlToJsonConverter.class);
+
     public static void convert(String xmlFilePath, String outputDir) throws Exception {
+        logger.info("Converting XML file: {}", xmlFilePath);
         File xmlFile = new File(xmlFilePath);
 
-        // Step 1: Parse XML file
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         DocumentBuilder builder = factory.newDocumentBuilder();
         Document doc = builder.parse(xmlFile);
         doc.getDocumentElement().normalize();
 
-        // Step 2: Extract levels and build a map
         NodeList levelNodes = doc.getElementsByTagName("level");
         Map<String, Level> levels = new HashMap<>();
         for (int i = 0; i < levelNodes.getLength(); i++) {
@@ -42,7 +45,6 @@ public class XmlToJsonConverter {
             }
         }
 
-        // Step 3: Process <level_id>60 nodes
         NodeList numberDataNodes = doc.getElementsByTagName("number_data");
         List<CommodityCode> commodityCodeList = new ArrayList<>();
         for (int i = 0; i < numberDataNodes.getLength(); i++) {
@@ -56,9 +58,8 @@ public class XmlToJsonConverter {
                     commodityCode.CommodityCodeUniqueID = numberDataElement.getElementsByTagName("id").item(0).getTextContent();
                     commodityCode.ValidityStartDate = numberDataElement.getElementsByTagName("validity_begin").item(0).getTextContent();
                     commodityCode.ValidityEndDate = numberDataElement.getElementsByTagName("validity_end").item(0).getTextContent();
-                    commodityCode.SupplementaryUnit = "KGM";  // Assuming constant value as per the example
+                    commodityCode.SupplementaryUnit = "KGM";  // Assuming
 
-                    // Process texts
                     NodeList textNodes = numberDataElement.getElementsByTagName("official_description");
                     for (int j = 0; j < textNodes.getLength(); j++) {
                         Element textElement = (Element) textNodes.item(j);
@@ -67,7 +68,6 @@ public class XmlToJsonConverter {
                         commodityCode.CommodityCodeDescriptionList.add(new CommodityCodeDescription(language, text));
                     }
 
-                    // Concatenate texts from parent levels
                     concatenateTexts(commodityCode, levels, numberDataElement.getElementsByTagName("parent_id").item(0).getTextContent());
 
                     commodityCodeList.add(commodityCode);
@@ -75,7 +75,6 @@ public class XmlToJsonConverter {
             }
         }
 
-        // Step 4: Create JSON structure
         JsonStructure jsonStructure = new JsonStructure();
         jsonStructure.TrdClassfctnCntntVersion = 54;
         jsonStructure.TrdClassfctnCntntRevisionVers = 1;
@@ -85,31 +84,38 @@ public class XmlToJsonConverter {
         jsonStructure.CommodityCodeLength = 11;
         jsonStructure.CommodityCodeList = commodityCodeList;
 
-        // Step 5: Write to JSON file
         Gson gson = new GsonBuilder().setPrettyPrinting().registerTypeAdapter(JsonStructure.class, new UppercaseKeysSerializer()).create();
         String json = gson.toJson(jsonStructure);
         FileWriter writer = new FileWriter(outputDir + "/HSCTWXXNUM_I_00054" + commodityCodeList.get(0).CommodityCode + ".json");
         writer.write(json);
         writer.close();
+        logger.info("Converted XML to JSON: {}", outputDir + "/HSCTWXXNUM_I_00054" + commodityCodeList.get(0).CommodityCode + ".json");
     }
 
     private static void concatenateTexts(CommodityCode commodityCode, Map<String, Level> levels, String parentId) {
         StringBuilder enConcatenation = new StringBuilder();
         StringBuilder zhConcatenation = new StringBuilder();
+        boolean first = true;
         while (parentId != null && !parentId.isEmpty()) {
-            Level level = levels.get(parentId.substring(0, 2));  // Assuming parent_id is prefixed with level_id
+            Level level = levels.get(parentId.substring(0, 2));
             if (level != null) {
-                enConcatenation.insert(0, ", " + level.Descriptions.get("EN"));
-                zhConcatenation.insert(0, ", " + level.Descriptions.get("ZH"));
+                if (first) {
+                    enConcatenation.append(level.Descriptions.get("EN"));
+                    zhConcatenation.append(level.Descriptions.get("ZH"));
+                    first = false;
+                } else {
+                    enConcatenation.insert(0, ", " + level.Descriptions.get("EN"));
+                    zhConcatenation.insert(0, ", " + level.Descriptions.get("ZH"));
+                }
             }
-            parentId = parentId.substring(2);  // Move to the next parent
+            parentId = parentId.substring(2);
         }
 
         for (CommodityCodeDescription description : commodityCode.CommodityCodeDescriptionList) {
             if ("EN".equals(description.LanguageISOCode)) {
-                description.ConcatenatedTariffNumberName = enConcatenation.append(description.CommodityCodeName).toString();
+                description.ConcatenatedTariffNumberName = enConcatenation.append(", ").append(description.CommodityCodeName).toString();
             } else if ("ZH".equals(description.LanguageISOCode)) {
-                description.ConcatenatedCommodityCodeName = zhConcatenation.append(description.CommodityCodeName).toString();
+                description.ConcatenatedCommodityCodeName = zhConcatenation.append(", ").append(description.CommodityCodeName).toString();
             }
         }
     }
@@ -163,7 +169,7 @@ public class XmlToJsonConverter {
                     String name = Character.toUpperCase(field.getName().charAt(0)) + field.getName().substring(1);
                     jsonObject.add(name, context.serialize(field.get(src)));
                 } catch (IllegalAccessException e) {
-                    e.printStackTrace();
+                    logger.error("Error serializing field: {}", field.getName(), e);
                 }
             }
             return jsonObject;
