@@ -15,7 +15,7 @@ public class ArchiveDownloader {
 
     private static final Logger logger = LoggerFactory.getLogger(ArchiveDownloader.class);
 
-    private static final String ZIP_URL = "https://www.awrportal.de/temp/HSCTWXX_I_00054_new-schema.zip";
+    private static final String ZIP_URL = "";
     private static final String DOWNLOAD_DIR = "src/main/resources/downloads";
     private static final String EXTRACT_DIR = "src/main/resources/extracted";
     private static final String JSON_OUTPUT_DIR = "src/main/resources/json_output";

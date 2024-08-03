@@ -142,7 +142,6 @@ public class XmlToJsonConverter {
         String ValidityStartDate;
         String ValidityEndDate;
         String SupplementaryUnit;
-        String SecondSupplementaryUnit = "";
         List<CommodityCodeDescription> CommodityCodeDescriptionList = new ArrayList<>();
     }
 
