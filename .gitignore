@@ -1,0 +1,11 @@
+/target/
+/.idea/
+/src/main/resources/downloads/
+/src/main/resources/extracted/
+/src/main/resources/json_output/
+*.xml
+*.json
+*.xlsx
+/data/h2db.mv.db
+*.db
+/src/test/
