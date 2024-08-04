@@ -9,3 +9,4 @@
 /data/h2db.mv.db
 *.db
 *.zip
+!pom.xml
